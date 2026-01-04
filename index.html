@@ -16,30 +16,12 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
         }
-        
-        .text-shadow {
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-        }
-        
-        * {
-            transition: background-color 0.2s ease, border-color 0.2s ease;
-        }
-        
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.1);
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 3px;
-        }
-        
-        * {
-            -webkit-tap-highlight-color: transparent;
-        }
+        .text-shadow { text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); }
+        * { transition: background-color 0.2s ease, border-color 0.2s ease; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.1); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 3px; }
+        * { -webkit-tap-highlight-color: transparent; }
     </style>
 </head>
 <body>
@@ -74,7 +56,6 @@
             const [reverseLetterMap, setReverseLetterMap] = useState({});
             const [copied, setCopied] = useState(false);
 
-            // Таблица замены букв (без конфликтов!)
             const letterMap = {
                 'а': 'ә', 'б': 'к', 'в': 'у', 'г': 'х', 'д': 'г', 'е': 'э', 'ё': 'ё',
                 'ж': 'й', 'з': 'р', 'и': 'ы', 'й': 'ј', 'к': 'ч', 'л': 'ф', 'м': 'ц',
@@ -89,7 +70,6 @@
             };
 
             useEffect(() => {
-                // Создаем обратную таблицу
                 const reverse = {};
                 Object.keys(letterMap).forEach(key => {
                     const value = letterMap[key];
@@ -211,6 +191,31 @@
                 setOutputText(inputText);
             };
 
+            const clearFields = () => {
+                setInputText('');
+                setOutputText('');
+                setCopied(false);
+            };
+
+            const copyToClipboard = async () => {
+                if (!outputText) return;
+                
+                try {
+                    await navigator.clipboard.writeText(outputText);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                } catch (err) {
+                    const textArea = document.createElement('textarea');
+                    textArea.value = outputText;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                }
+            };
+
             return (
                 <div className="min-h-screen p-4">
                     <div className="max-w-4xl mx-auto mb-6">
@@ -248,12 +253,26 @@
                             </div>
 
                             <div className="mb-4">
-                                <textarea
-                                    value={inputText}
-                                    onChange={(e) => setInputText(e.target.value)}
-                                    placeholder="Введите текст для перевода..."
-                                    className="w-full h-40 bg-gray-700/60 text-white placeholder-gray-400 rounded-2xl p-4 border border-gray-600/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none text-lg"
-                                />
+                                <div className="relative">
+                                    <textarea
+                                        value={inputText}
+                                        onChange={(e) => setInputText(e.target.value)}
+                                        placeholder="Введите текст для перевода..."
+                                        className="w-full h-40 bg-gray-700/60 text-white placeholder-gray-400 rounded-2xl p-4 pr-12 border border-gray-600/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none text-lg"
+                                    />
+                                    {inputText && (
+                                        <button
+                                            onClick={clearFields}
+                                            className="absolute top-3 right-3 bg-gray-600/80 hover:bg-gray-500/80 text-white p-2 rounded-lg transition-all"
+                                            title="Очистить"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                                <line x1="6" y1="6" x2="18" y2="18"/>
+                                            </svg>
+                                        </button>
+                                    )}
+                                </div>
                             </div>
 
                             <button
@@ -264,9 +283,32 @@
                             </button>
 
                             <div className="bg-gray-700/60 rounded-2xl p-4 border border-gray-600/50 min-h-[160px]">
-                                <p className="text-white whitespace-pre-wrap text-lg">
+                                <p className="text-white whitespace-pre-wrap text-lg mb-3">
                                     {outputText || 'Перевод появится здесь...'}
                                 </p>
+                                {outputText && (
+                                    <button
+                                        onClick={copyToClipboard}
+                                        className={`mt-2 w-full ${copied ? 'bg-green-600' : 'bg-blue-600 hover:bg-blue-700'} text-white font-medium py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98]`}
+                                    >
+                                        {copied ? (
+                                            <>
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                                    <polyline points="20 6 9 17 4 12"/>
+                                                </svg>
+                                                Скопировано!
+                                            </>
+                                        ) : (
+                                            <>
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                                </svg>
+                                                Скопировать
+                                            </>
+                                        )}
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
