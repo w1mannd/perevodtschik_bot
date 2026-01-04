@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Русско-слингонский переводчик</title>
+    <title>Слингонский переводчик</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -29,7 +29,7 @@
 
         // SVG иконки
         const DatabaseIcon = () => (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <ellipse cx="12" cy="5" rx="9" ry="3"/>
                 <path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/>
                 <path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/>
@@ -37,30 +37,32 @@
         );
 
         const BookOpenIcon = () => (
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
                 <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
             </svg>
         );
 
         const LanguagesIcon = ({ className }) => (
-            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path d="M5 8l6 6m-7 0l6.5-6.5"/>
-                <path d="m12 2 3 3-3 3"/>
-                <path d="m17 11 3 3-3 3"/>
-                <path d="M2 12h8m6 0h6"/>
+            <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <path d="m5 8 6 6"/>
+                <path d="m4 14 6.5-6.5"/>
+                <path d="m12 5 3 3-3 3"/>
+                <path d="m17 14 3 3-3 3"/>
+                <path d="M2 12h8"/>
+                <path d="M16 12h6"/>
             </svg>
         );
 
         const PlusIcon = () => (
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <line x1="12" y1="5" x2="12" y2="19"/>
                 <line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
         );
 
         const XIcon = () => (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <line x1="18" y1="6" x2="6" y2="18"/>
                 <line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
