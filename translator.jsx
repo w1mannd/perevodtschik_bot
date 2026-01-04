@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Database, BookOpen, Languages, Plus, X } from 'lucide-react';
 
-const tg = window.Telegram.WebApp;
-tg.expand();
-tg.ready();
-
-document.body.style.backgroundColor = tg.themeParams.bg_color || '#1a1a2e';
+// Инициализация Telegram Web App
+const tg = window.Telegram?.WebApp;
+if (tg) {
+  tg.expand();
+  tg.ready();
+  document.body.style.backgroundColor = tg.themeParams.bg_color || '#1a1a2e';
+}
 
 const SlingonTranslator = () => {
   const [inputText, setInputText] = useState('');
@@ -30,7 +32,7 @@ const SlingonTranslator = () => {
     'Ы': 'И', 'Ь': '', 'Э': 'И', 'Ю': 'А', 'Я': 'У'
   };
 
-  // Обратная таблица для перевода обратно
+  // Обратная таблица
   const reverseLetterMap = {};
 
   useEffect(() => {
@@ -44,11 +46,12 @@ const SlingonTranslator = () => {
     loadDictionary();
   }, []);
 
-  const loadDictionary = async () => {
+  const loadDictionary = () => {
     try {
-      const result = await window.storage.get('slingon-dictionary');
-      if (result && result.value) {
-        setDictionary(JSON.parse(result.value));
+      // Используем localStorage вместо window.storage
+      const stored = localStorage.getItem('slingon-dictionary');
+      if (stored) {
+        setDictionary(JSON.parse(stored));
       } else {
         const baseDict = {
           'я': 'би',
@@ -61,7 +64,7 @@ const SlingonTranslator = () => {
           'они': 'урак'
         };
         setDictionary(baseDict);
-        await window.storage.set('slingon-dictionary', JSON.stringify(baseDict));
+        localStorage.setItem('slingon-dictionary', JSON.stringify(baseDict));
       }
     } catch (error) {
       const baseDict = {
@@ -79,9 +82,9 @@ const SlingonTranslator = () => {
     setIsLoading(false);
   };
 
-  const saveDictionary = async (newDict) => {
+  const saveDictionary = (newDict) => {
     try {
-      await window.storage.set('slingon-dictionary', JSON.stringify(newDict));
+      localStorage.setItem('slingon-dictionary', JSON.stringify(newDict));
     } catch (error) {
       console.error('Ошибка сохранения:', error);
     }
@@ -139,13 +142,13 @@ const SlingonTranslator = () => {
         
         if (!token) continue;
         
-        // Проверяем, является ли токен числом
+        // Проверяем числа
         if (/^\d+$/.test(token)) {
           translatedSentence += token;
           continue;
         }
         
-        // Проверяем, обрамлено ли слово звёздочками
+        // Проверяем звёздочки
         if (token.startsWith('*') && token.endsWith('*') && token.length > 2) {
           translatedSentence += token.slice(1, -1);
           continue;
@@ -156,7 +159,6 @@ const SlingonTranslator = () => {
         // Проверяем словарь
         if (dictionary[lowerToken]) {
           const translated = dictionary[lowerToken];
-          // Сохраняем заглавную букву если была
           if (/^[А-ЯЁ]/.test(token)) {
             translatedSentence += translated.charAt(0).toUpperCase() + translated.slice(1);
           } else {
@@ -252,11 +254,11 @@ const SlingonTranslator = () => {
     }
   };
 
-  const handleAddWord = async () => {
+  const handleAddWord = () => {
     if (newWord.ru.trim() && newWord.sl.trim()) {
       const newDict = { ...dictionary, [newWord.ru.toLowerCase()]: newWord.sl.toLowerCase() };
       setDictionary(newDict);
-      await saveDictionary(newDict);
+      saveDictionary(newDict);
       setNewWord({ ru: '', sl: '' });
       setShowDictModal(false);
     }
