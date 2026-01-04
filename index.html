@@ -5,13 +5,485 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Русско-слингонский переводчик</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body>
     <div id="root"></div>
-    <script type="text/babel" src="app.jsx"></script>
+    
+    <script type="module">
+        import React, { useState, useEffect } from 'https://esm.sh/react@18';
+        import ReactDOM from 'https://esm.sh/react-dom@18/client';
+
+        // Инициализация Telegram Web App
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.expand();
+            tg.ready();
+            document.body.style.backgroundColor = tg.themeParams.bg_color || '#1a1a2e';
+        }
+
+        // Иконки (упрощенные SVG)
+        const Languages = () => (
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+            </svg>
+        );
+
+        const BookOpen = ({ className }) => (
+            <svg className={className || "w-4 h-4"} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+        );
+
+        const Database = ({ className }) => (
+            <svg className={className || "w-6 h-6"} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+            </svg>
+        );
+
+        const Plus = ({ className }) => (
+            <svg className={className || "w-4 h-4"} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+        );
+
+        const X = ({ className }) => (
+            <svg className={className || "w-5 h-5"} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        );
+
+        const SlingonTranslator = () => {
+            const [inputText, setInputText] = useState('');
+            const [outputText, setOutputText] = useState('');
+            const [mode, setMode] = useState('ru-sl');
+            const [dictionary, setDictionary] = useState({});
+            const [showDictModal, setShowDictModal] = useState(false);
+            const [newWord, setNewWord] = useState({ ru: '', sl: '' });
+            const [isLoading, setIsLoading] = useState(false);
+
+            // Таблица замены букв
+            const letterMap = {
+                'а': 'ә', 'б': 'к', 'в': 'у', 'г': 'х', 'д': 'г', 'е': 'э', 'ё': 'йо',
+                'ж': 'й', 'з': 'р', 'и': 'ы', 'й': 'й', 'к': 'ч', 'л': 'ф', 'м': 'ц',
+                'н': 'н', 'о': 'ү', 'п': 'м', 'р': 'н', 'с': 'з', 'т': 'ш', 'у': 'о',
+                'ф': 'п', 'х': 'ж', 'ц': 'н', 'ч': 'т', 'ш': 'с', 'щ': 'б', 'ъ': '',
+                'ы': 'и', 'ь': '', 'э': 'и', 'ю': 'а', 'я': 'у',
+                'А': 'Ә', 'Б': 'К', 'В': 'У', 'Г': 'Х', 'Д': 'Г', 'Е': 'Э', 'Ё': 'Йо',
+                'Ж': 'Й', 'З': 'Р', 'И': 'Ы', 'Й': 'Й', 'К': 'Ч', 'Л': 'Ф', 'М': 'Ц',
+                'Н': 'Н', 'О': 'Ү', 'П': 'М', 'Р': 'Н', 'С': 'З', 'Т': 'Ш', 'У': 'О',
+                'Ф': 'П', 'Х': 'Ж', 'Ц': 'Н', 'Ч': 'Т', 'Ш': 'С', 'Щ': 'Б', 'Ъ': '',
+                'Ы': 'И', 'Ь': '', 'Э': 'И', 'Ю': 'А', 'Я': 'У'
+            };
+
+            // Обратная таблица
+            const reverseLetterMap = {};
+
+            useEffect(() => {
+                // Создаем обратную таблицу
+                Object.keys(letterMap).forEach(key => {
+                    const value = letterMap[key];
+                    if (value && value !== '') {
+                        reverseLetterMap[value] = key;
+                    }
+                });
+
+                // Базовый словарь
+                const baseDict = {
+                    'я': 'би',
+                    'ты': 'шах',
+                    'он': 'у',
+                    'она': 'у',
+                    'оно': 'у',
+                    'мы': 'биш',
+                    'вы': 'шахар',
+                    'они': 'урак'
+                };
+                setDictionary(baseDict);
+            }, []);
+
+            // Конвертация слова по таблице
+            const convertWord = (word) => {
+                let result = '';
+                for (let char of word) {
+                    result += letterMap[char] || char;
+                }
+                return result;
+            };
+
+            // Обратная конвертация
+            const convertWordReverse = (word) => {
+                let result = '';
+                let i = 0;
+                while (i < word.length) {
+                    // Проверяем двухбуквенные сочетания
+                    if (i < word.length - 1) {
+                        const twoChar = word[i] + word[i + 1];
+                        if (reverseLetterMap[twoChar]) {
+                            result += reverseLetterMap[twoChar];
+                            i += 2;
+                            continue;
+                        }
+                    }
+                    // Одна буква
+                    result += reverseLetterMap[word[i]] || word[i];
+                    i++;
+                }
+                return result;
+            };
+
+            // Перевод с русского на слингонский
+            const translateToSlingon = (text) => {
+                const sentences = text.split(/([.!?]\s*)/);
+                let result = '';
+                
+                for (let sentence of sentences) {
+                    if (/[.!?]/.test(sentence)) {
+                        result += sentence;
+                        continue;
+                    }
+                    
+                    const words = sentence.split(/(\s+|[,;:])/);
+                    let translatedSentence = '';
+                    
+                    for (let token of words) {
+                        if (/\s+|[,;:]/.test(token)) {
+                            translatedSentence += token;
+                            continue;
+                        }
+                        
+                        if (!token) continue;
+                        
+                        // Проверяем числа
+                        if (/^\d+$/.test(token)) {
+                            translatedSentence += token;
+                            continue;
+                        }
+                        
+                        // Проверяем звёздочки
+                        if (token.startsWith('*') && token.endsWith('*') && token.length > 2) {
+                            translatedSentence += token.slice(1, -1);
+                            continue;
+                        }
+                        
+                        const lowerToken = token.toLowerCase();
+                        
+                        // Проверяем словарь
+                        if (dictionary[lowerToken]) {
+                            const translated = dictionary[lowerToken];
+                            if (/^[А-ЯЁ]/.test(token)) {
+                                translatedSentence += translated.charAt(0).toUpperCase() + translated.slice(1);
+                            } else {
+                                translatedSentence += translated;
+                            }
+                            continue;
+                        }
+                        
+                        // Конвертируем по таблице
+                        const translated = convertWord(token);
+                        translatedSentence += translated;
+                        
+                        // Сохраняем в словарь
+                        setDictionary(prev => ({
+                            ...prev,
+                            [lowerToken]: translated.toLowerCase()
+                        }));
+                    }
+                    
+                    result += translatedSentence;
+                }
+                
+                return result;
+            };
+
+            // Обратный перевод
+            const translateFromSlingon = (text) => {
+                const reversedDict = {};
+                Object.keys(dictionary).forEach(key => {
+                    reversedDict[dictionary[key].toLowerCase()] = key;
+                });
+                
+                const sentences = text.split(/([.!?]\s*)/);
+                let result = '';
+                
+                for (let sentence of sentences) {
+                    if (/[.!?]/.test(sentence)) {
+                        result += sentence;
+                        continue;
+                    }
+                    
+                    const words = sentence.split(/(\s+|[,;:])/);
+                    let translatedSentence = '';
+                    
+                    for (let token of words) {
+                        if (/\s+|[,;:]/.test(token)) {
+                            translatedSentence += token;
+                            continue;
+                        }
+                        
+                        if (!token) continue;
+                        
+                        // Проверяем числа
+                        if (/^\d+$/.test(token)) {
+                            translatedSentence += token;
+                            continue;
+                        }
+                        
+                        const lowerToken = token.toLowerCase();
+                        
+                        // Проверяем словарь
+                        if (reversedDict[lowerToken]) {
+                            const translated = reversedDict[lowerToken];
+                            if (/^[А-ЯЁӘҮІ]/.test(token)) {
+                                translatedSentence += translated.charAt(0).toUpperCase() + translated.slice(1);
+                            } else {
+                                translatedSentence += translated;
+                            }
+                            continue;
+                        }
+                        
+                        // Конвертируем обратно
+                        const translated = convertWordReverse(token);
+                        translatedSentence += translated;
+                    }
+                    
+                    result += translatedSentence;
+                }
+                
+                return result;
+            };
+
+            const handleTranslate = () => {
+                if (!inputText.trim()) {
+                    setOutputText('');
+                    return;
+                }
+                
+                if (mode === 'ru-sl') {
+                    setOutputText(translateToSlingon(inputText));
+                } else {
+                    setOutputText(translateFromSlingon(inputText));
+                }
+            };
+
+            const handleAddWord = () => {
+                if (newWord.ru.trim() && newWord.sl.trim()) {
+                    setDictionary(prev => ({
+                        ...prev,
+                        [newWord.ru.toLowerCase()]: newWord.sl.toLowerCase()
+                    }));
+                    setNewWord({ ru: '', sl: '' });
+                    setShowDictModal(false);
+                }
+            };
+
+            const swapLanguages = () => {
+                setMode(mode === 'ru-sl' ? 'sl-ru' : 'ru-sl');
+                setInputText(outputText);
+                setOutputText(inputText);
+            };
+
+            if (isLoading) {
+                return React.createElement('div', {
+                    className: "min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center"
+                }, React.createElement('div', {
+                    className: "text-white text-xl"
+                }, 'Загрузка...'));
+            }
+
+            return React.createElement('div', {
+                className: "min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4"
+            }, [
+                // Header
+                React.createElement('div', {
+                    key: 'header',
+                    className: "max-w-4xl mx-auto mb-6"
+                }, React.createElement('div', {
+                    className: "backdrop-blur-xl bg-white/10 rounded-3xl p-6 shadow-2xl border border-white/20"
+                }, React.createElement('div', {
+                    className: "flex items-center justify-between"
+                }, [
+                    React.createElement('div', {
+                        key: 'title',
+                        className: "flex items-center gap-3"
+                    }, [
+                        React.createElement(Languages, { key: 'icon' }),
+                        React.createElement('h1', {
+                            key: 'text',
+                            className: "text-2xl font-bold text-white"
+                        }, 'Слингонский переводчик')
+                    ]),
+                    React.createElement('button', {
+                        key: 'dict-btn',
+                        onClick: () => setShowDictModal(true),
+                        className: "backdrop-blur-md bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-xl transition-all flex items-center gap-2 border border-white/20"
+                    }, [
+                        React.createElement(BookOpen, { key: 'icon', className: "w-4 h-4" }),
+                        'Словарь'
+                    ])
+                ]))),
+
+                // Main translator
+                React.createElement('div', {
+                    key: 'main',
+                    className: "max-w-4xl mx-auto"
+                }, React.createElement('div', {
+                    className: "backdrop-blur-xl bg-white/10 rounded-3xl p-6 shadow-2xl border border-white/20"
+                }, [
+                    // Language selector
+                    React.createElement('div', {
+                        key: 'lang-selector',
+                        className: "flex items-center justify-center gap-4 mb-6"
+                    }, [
+                        React.createElement('div', {
+                            key: 'from',
+                            className: "backdrop-blur-md bg-white/20 px-6 py-2 rounded-xl border border-white/20"
+                        }, React.createElement('span', {
+                            className: "text-white font-medium"
+                        }, mode === 'ru-sl' ? 'Русский' : 'Слингонский')),
+                        React.createElement('button', {
+                            key: 'swap',
+                            onClick: swapLanguages,
+                            className: "backdrop-blur-md bg-white/20 hover:bg-white/30 p-3 rounded-xl transition-all border border-white/20"
+                        }, React.createElement(Languages, {})),
+                        React.createElement('div', {
+                            key: 'to',
+                            className: "backdrop-blur-md bg-white/20 px-6 py-2 rounded-xl border border-white/20"
+                        }, React.createElement('span', {
+                            className: "text-white font-medium"
+                        }, mode === 'ru-sl' ? 'Слингонский' : 'Русский'))
+                    ]),
+
+                    // Input
+                    React.createElement('div', {
+                        key: 'input',
+                        className: "mb-4"
+                    }, React.createElement('textarea', {
+                        value: inputText,
+                        onChange: (e) => setInputText(e.target.value),
+                        placeholder: "Введите текст для перевода...",
+                        className: "w-full h-40 backdrop-blur-md bg-white/20 text-white placeholder-white/60 rounded-2xl p-4 border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/40 resize-none"
+                    })),
+
+                    // Translate button
+                    React.createElement('button', {
+                        key: 'translate-btn',
+                        onClick: handleTranslate,
+                        className: "w-full backdrop-blur-md bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-semibold py-4 rounded-2xl transition-all shadow-lg mb-4"
+                    }, 'Перевести'),
+
+                    // Output
+                    React.createElement('div', {
+                        key: 'output',
+                        className: "backdrop-blur-md bg-white/20 rounded-2xl p-4 border border-white/20 min-h-[160px]"
+                    }, React.createElement('p', {
+                        className: "text-white whitespace-pre-wrap"
+                    }, outputText || 'Перевод появится здесь...'))
+                ])),
+
+                // Footer
+                React.createElement('div', {
+                    key: 'footer',
+                    className: "max-w-4xl mx-auto mt-6 text-center"
+                }, React.createElement('p', {
+                    className: "text-white/70 text-sm"
+                }, 'При поддержке Национального института слингонского языка')),
+
+                // Dictionary modal
+                showDictModal && React.createElement('div', {
+                    key: 'modal',
+                    className: "fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+                }, React.createElement('div', {
+                    className: "backdrop-blur-xl bg-white/10 rounded-3xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto border border-white/20"
+                }, [
+                    // Modal header
+                    React.createElement('div', {
+                        key: 'modal-header',
+                        className: "flex items-center justify-between mb-6"
+                    }, [
+                        React.createElement('h2', {
+                            key: 'title',
+                            className: "text-2xl font-bold text-white flex items-center gap-2"
+                        }, [
+                            React.createElement(Database, { key: 'icon', className: "w-6 h-6" }),
+                            'Словарь'
+                        ]),
+                        React.createElement('button', {
+                            key: 'close',
+                            onClick: () => setShowDictModal(false),
+                            className: "backdrop-blur-md bg-white/20 hover:bg-white/30 p-2 rounded-xl transition-all"
+                        }, React.createElement(X, { className: "w-5 h-5 text-white" }))
+                    ]),
+
+                    // Add word form
+                    React.createElement('div', {
+                        key: 'add-form',
+                        className: "backdrop-blur-md bg-white/20 rounded-2xl p-4 mb-6 border border-white/20"
+                    }, [
+                        React.createElement('h3', {
+                            key: 'form-title',
+                            className: "text-white font-semibold mb-3 flex items-center gap-2"
+                        }, [
+                            React.createElement(Plus, { key: 'icon', className: "w-4 h-4" }),
+                            'Добавить слово'
+                        ]),
+                        React.createElement('div', {
+                            key: 'inputs',
+                            className: "flex gap-2 mb-2"
+                        }, [
+                            React.createElement('input', {
+                                key: 'ru',
+                                type: "text",
+                                placeholder: "Русское слово",
+                                value: newWord.ru,
+                                onChange: (e) => setNewWord({ ...newWord, ru: e.target.value }),
+                                className: "flex-1 backdrop-blur-md bg-white/20 text-white placeholder-white/60 rounded-xl px-4 py-2 border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
+                            }),
+                            React.createElement('input', {
+                                key: 'sl',
+                                type: "text",
+                                placeholder: "Слингонское слово",
+                                value: newWord.sl,
+                                onChange: (e) => setNewWord({ ...newWord, sl: e.target.value }),
+                                className: "flex-1 backdrop-blur-md bg-white/20 text-white placeholder-white/60 rounded-xl px-4 py-2 border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
+                            })
+                        ]),
+                        React.createElement('button', {
+                            key: 'add-btn',
+                            onClick: handleAddWord,
+                            className: "w-full backdrop-blur-md bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold py-2 rounded-xl transition-all"
+                        }, 'Добавить')
+                    ]),
+
+                    // Dictionary list
+                    React.createElement('div', {
+                        key: 'dict-list',
+                        className: "space-y-2"
+                    }, Object.entries(dictionary).map(([ru, sl]) => 
+                        React.createElement('div', {
+                            key: ru,
+                            className: "backdrop-blur-md bg-white/20 rounded-xl p-3 border border-white/20 flex justify-between items-center"
+                        }, [
+                            React.createElement('span', {
+                                key: 'ru',
+                                className: "text-white font-medium"
+                            }, ru),
+                            React.createElement('span', {
+                                key: 'arrow',
+                                className: "text-white/80"
+                            }, '→'),
+                            React.createElement('span', {
+                                key: 'sl',
+                                className: "text-white font-medium"
+                            }, sl)
+                        ])
+                    ))
+                ]))
+            ]);
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(SlingonTranslator));
+    </script>
 </body>
 </html>
