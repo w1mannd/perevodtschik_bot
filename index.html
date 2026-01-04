@@ -111,17 +111,39 @@
                 let result = '';
                 let i = 0;
                 while (i < word.length) {
-                    // Проверяем двухбуквенные сочетания (ё → йо)
+                    // Проверяем двухбуквенные сочетания (йо → ё)
                     if (i < word.length - 1) {
                         const twoChar = word[i] + word[i + 1];
-                        if (reverseLetterMap[twoChar]) {
-                            result += reverseLetterMap[twoChar];
+                        const twoCharLower = twoChar.toLowerCase();
+                        
+                        if (reverseLetterMap[twoCharLower]) {
+                            const originalChar = reverseLetterMap[twoCharLower];
+                            // Сохраняем регистр первой буквы
+                            if (word[i] === word[i].toUpperCase() && word[i] !== word[i].toLowerCase()) {
+                                result += originalChar.toUpperCase();
+                            } else {
+                                result += originalChar;
+                            }
                             i += 2;
                             continue;
                         }
                     }
+                    
                     // Одна буква
-                    result += reverseLetterMap[word[i]] || word[i];
+                    const char = word[i];
+                    const charLower = char.toLowerCase();
+                    const reversedChar = reverseLetterMap[charLower];
+                    
+                    if (reversedChar) {
+                        // Сохраняем регистр
+                        if (char === char.toUpperCase() && char !== char.toLowerCase()) {
+                            result += reversedChar.toUpperCase();
+                        } else {
+                            result += reversedChar;
+                        }
+                    } else {
+                        result += char;
+                    }
                     i++;
                 }
                 return result;
