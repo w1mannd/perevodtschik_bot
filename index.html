@@ -17,17 +17,14 @@
             background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
         }
         
-        /* Улучшаем читаемость текста */
         .text-shadow {
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
         }
         
-        /* Плавные переходы */
         * {
             transition: background-color 0.2s ease, border-color 0.2s ease;
         }
         
-        /* Стили для полосы прокрутки */
         ::-webkit-scrollbar {
             width: 6px;
         }
@@ -40,7 +37,6 @@
             border-radius: 3px;
         }
         
-        /* Убираем подсветку при тапе на мобильных */
         * {
             -webkit-tap-highlight-color: transparent;
         }
@@ -56,11 +52,9 @@
         if (tg) {
             tg.expand();
             tg.ready();
-            // Устанавливаем темный фон, соответствующий теме Telegram
             document.body.style.backgroundColor = tg.themeParams.bg_color || '#0f172a';
         }
 
-        // Компонент звезды
         const StarIcon = ({ className }) => (
             <img 
                 src="syngonian_star.png" 
@@ -77,6 +71,7 @@
             const [inputText, setInputText] = useState('');
             const [outputText, setOutputText] = useState('');
             const [mode, setMode] = useState('ru-sl');
+            const [reverseLetterMap, setReverseLetterMap] = useState({});
 
             // Таблица замены букв
             const letterMap = {
@@ -92,30 +87,17 @@
                 'Ы': 'И', 'Ь': '', 'Э': 'И', 'Ю': 'А', 'Я': 'У'
             };
 
-            const reverseLetterMap = {};
-
             useEffect(() => {
+                // Создаем обратную таблицу
+                const reverse = {};
                 Object.keys(letterMap).forEach(key => {
                     const value = letterMap[key];
                     if (value && value !== '') {
-                        reverseLetterMap[value] = key;
+                        reverse[value] = key;
                     }
                 });
+                setReverseLetterMap(reverse);
             }, []);
-
-            const preserveCase = (originalWord, translatedWord) => {
-                if (!originalWord || !translatedWord) return translatedWord;
-                
-                if (originalWord === originalWord.toUpperCase()) {
-                    return translatedWord.toUpperCase();
-                }
-                
-                if (originalWord[0] === originalWord[0].toUpperCase()) {
-                    return translatedWord.charAt(0).toUpperCase() + translatedWord.slice(1);
-                }
-                
-                return translatedWord;
-            };
 
             const convertWord = (word) => {
                 let result = '';
@@ -129,6 +111,7 @@
                 let result = '';
                 let i = 0;
                 while (i < word.length) {
+                    // Проверяем двухбуквенные сочетания (ё → йо)
                     if (i < word.length - 1) {
                         const twoChar = word[i] + word[i + 1];
                         if (reverseLetterMap[twoChar]) {
@@ -137,6 +120,7 @@
                             continue;
                         }
                     }
+                    // Одна буква
                     result += reverseLetterMap[word[i]] || word[i];
                     i++;
                 }
@@ -174,8 +158,7 @@
                             continue;
                         }
                         
-                        const translated = convertWord(token);
-                        translatedSentence += preserveCase(token, translated);
+                        translatedSentence += convertWord(token);
                     }
                     
                     result += translatedSentence;
@@ -210,8 +193,7 @@
                             continue;
                         }
                         
-                        const translated = convertWordReverse(token);
-                        translatedSentence += preserveCase(token, translated);
+                        translatedSentence += convertWordReverse(token);
                     }
                     
                     result += translatedSentence;
@@ -292,7 +274,7 @@
                             </button>
 
                             <div className="bg-gray-700/60 rounded-2xl p-4 border border-gray-600/50 min-h-[160px]">
-                                <p className="text-white whitespace-pre-wrap">
+                                <p className="text-white whitespace-pre-wrap text-lg">
                                     {outputText || 'Перевод появится здесь...'}
                                 </p>
                             </div>
@@ -309,7 +291,6 @@
             );
         };
 
-        // Рендерим приложение
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<SlingonTranslator />);
     </script>
