@@ -26,49 +26,20 @@
             document.body.style.backgroundColor = tg.themeParams.bg_color || '#1a1a2e';
         }
 
-        const DatabaseIcon = () => (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                <ellipse cx="12" cy="5" rx="9" ry="3"/>
-                <path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/>
-                <path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/>
-            </svg>
-        );
-
-        const BookOpenIcon = () => (
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-            </svg>
-        );
-
-        const LanguagesIcon = ({ className }) => (
-            <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                <path d="M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.98-4.17 3.71-6.53H17V4h-7V2H8v2H1v1.99h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z"/>
-            </svg>
-        );
-
-        const PlusIcon = () => (
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                <line x1="12" y1="5" x2="12" y2="19"/>
-                <line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-        );
-
-        const XIcon = () => (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                <line x1="18" y1="6" x2="6" y2="18"/>
-                <line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
+        // Компонент звезды - использует ваш файл из репозитория
+        const StarIcon = ({ className }) => (
+            <img 
+                src="syngonian_star.png" 
+                alt="Звезда Сингонии"
+                className={className}
+                style={{ objectFit: 'contain' }}
+            />
         );
 
         const SlingonTranslator = () => {
             const [inputText, setInputText] = useState('');
             const [outputText, setOutputText] = useState('');
             const [mode, setMode] = useState('ru-sl');
-            const [dictionary, setDictionary] = useState({});
-            const [showDictModal, setShowDictModal] = useState(false);
-            const [newWord, setNewWord] = useState({ ru: '', sl: '' });
-            const [isLoading, setIsLoading] = useState(true);
 
             // Таблица замены букв
             const letterMap = {
@@ -93,50 +64,20 @@
                         reverseLetterMap[value] = key;
                     }
                 });
-                loadDictionary();
             }, []);
 
-            const loadDictionary = () => {
-                try {
-                    const stored = localStorage.getItem('slingon-dictionary');
-                    if (stored) {
-                        setDictionary(JSON.parse(stored));
-                    } else {
-                        const baseDict = {
-                            'я': 'би',
-                            'ты': 'шах',
-                            'он': 'у',
-                            'она': 'у',
-                            'оно': 'у',
-                            'мы': 'биш',
-                            'вы': 'шахр',
-                            'они': 'урак'
-                        };
-                        setDictionary(baseDict);
-                        localStorage.setItem('slingon-dictionary', JSON.stringify(baseDict));
-                    }
-                } catch (error) {
-                    const baseDict = {
-                        'я': 'би',
-                        'ты': 'шах',
-                        'он': 'у',
-                        'она': 'у',
-                        'оно': 'у',
-                        'мы': 'биш',
-                        'вы': 'шахр',
-                        'они': 'урак'
-                    };
-                    setDictionary(baseDict);
+            const preserveCase = (originalWord, translatedWord) => {
+                if (!originalWord || !translatedWord) return translatedWord;
+                
+                if (originalWord === originalWord.toUpperCase()) {
+                    return translatedWord.toUpperCase();
                 }
-                setIsLoading(false);
-            };
-
-            const saveDictionary = (newDict) => {
-                try {
-                    localStorage.setItem('slingon-dictionary', JSON.stringify(newDict));
-                } catch (error) {
-                    console.error('Ошибка сохранения:', error);
+                
+                if (originalWord[0] === originalWord[0].toUpperCase()) {
+                    return translatedWord.charAt(0).toUpperCase() + translatedWord.slice(1);
                 }
+                
+                return translatedWord;
             };
 
             const convertWord = (word) => {
@@ -196,25 +137,8 @@
                             continue;
                         }
                         
-                        const lowerToken = token.toLowerCase();
-                        
-                        if (dictionary[lowerToken]) {
-                            const translated = dictionary[lowerToken];
-                            if (/^[А-ЯЁ]/.test(token)) {
-                                translatedSentence += translated.charAt(0).toUpperCase() + translated.slice(1);
-                            } else {
-                                translatedSentence += translated;
-                            }
-                            continue;
-                        }
-                        
                         const translated = convertWord(token);
-                        translatedSentence += translated;
-                        
-                        const newDict = { ...dictionary };
-                        newDict[lowerToken] = translated.toLowerCase();
-                        setDictionary(newDict);
-                        saveDictionary(newDict);
+                        translatedSentence += preserveCase(token, translated);
                     }
                     
                     result += translatedSentence;
@@ -224,11 +148,6 @@
             };
 
             const translateFromSlingon = (text) => {
-                const reversedDict = {};
-                Object.keys(dictionary).forEach(key => {
-                    reversedDict[dictionary[key].toLowerCase()] = key;
-                });
-                
                 const sentences = text.split(/([.!?]\s*)/);
                 let result = '';
                 
@@ -254,20 +173,8 @@
                             continue;
                         }
                         
-                        const lowerToken = token.toLowerCase();
-                        
-                        if (reversedDict[lowerToken]) {
-                            const translated = reversedDict[lowerToken];
-                            if (/^[А-ЯЁӘҮІ]/.test(token)) {
-                                translatedSentence += translated.charAt(0).toUpperCase() + translated.slice(1);
-                            } else {
-                                translatedSentence += translated;
-                            }
-                            continue;
-                        }
-                        
                         const translated = convertWordReverse(token);
-                        translatedSentence += translated;
+                        translatedSentence += preserveCase(token, translated);
                     }
                     
                     result += translatedSentence;
@@ -289,46 +196,21 @@
                 }
             };
 
-            const handleAddWord = () => {
-                if (newWord.ru.trim() && newWord.sl.trim()) {
-                    const newDict = { ...dictionary, [newWord.ru.toLowerCase()]: newWord.sl.toLowerCase() };
-                    setDictionary(newDict);
-                    saveDictionary(newDict);
-                    setNewWord({ ru: '', sl: '' });
-                    setShowDictModal(false);
-                }
-            };
-
             const swapLanguages = () => {
                 setMode(mode === 'ru-sl' ? 'sl-ru' : 'ru-sl');
                 setInputText(outputText);
                 setOutputText(inputText);
             };
 
-            if (isLoading) {
-                return (
-                    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
-                        <div className="text-white text-xl">Загрузка...</div>
-                    </div>
-                );
-            }
-
             return (
                 <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
                     <div className="max-w-4xl mx-auto mb-6">
                         <div className="backdrop-blur-xl bg-white/10 rounded-3xl p-4 md:p-6 shadow-2xl border border-white/20">
-                            <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center justify-center gap-3">
                                 <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
-                                    <LanguagesIcon className="w-6 h-6 md:w-8 md:h-8 text-white flex-shrink-0" />
-                                    <h1 className="text-lg md:text-2xl font-bold text-white truncate">Сингонский переводчик</h1>
+                                    <StarIcon className="w-6 h-6 md:w-8 md:h-8 flex-shrink-0" />
+                                    <h1 className="text-lg md:text-2xl font-bold text-white truncate">Русско-сингонский переводчик</h1>
                                 </div>
-                                <button
-                                    onClick={() => setShowDictModal(true)}
-                                    className="backdrop-blur-md bg-purple-500/30 hover:bg-purple-500/40 text-white px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 border border-purple-400/30 text-sm flex-shrink-0"
-                                >
-                                    <BookOpenIcon />
-                                    <span className="hidden sm:inline">Словарь</span>
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -345,7 +227,7 @@
                                     onClick={swapLanguages}
                                     className="backdrop-blur-md bg-white/20 hover:bg-white/30 p-3 rounded-xl transition-all border border-white/20"
                                 >
-                                    <LanguagesIcon className="w-5 h-5 text-white" />
+                                    <StarIcon className="w-5 h-5" />
                                 </button>
                                 <div className="backdrop-blur-md bg-white/20 px-6 py-2 rounded-xl border border-white/20">
                                     <span className="text-white font-medium">
@@ -377,71 +259,11 @@
                     </div>
 
                     <div className="max-w-4xl mx-auto mt-6 text-center">
-                        <p className="text-white/70 text-sm">
+                        <p className="text-white/70 text-sm mb-2">
                             При поддержке Национального института сингонского языка
                         </p>
+                        <StarIcon className="w-6 h-6 mx-auto opacity-60" />
                     </div>
-
-                    {showDictModal && (
-                        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                            <div className="backdrop-blur-xl bg-white/10 rounded-3xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto border border-white/20">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                                        <DatabaseIcon />
-                                        Словарь
-                                    </h2>
-                                    <button
-                                        onClick={() => setShowDictModal(false)}
-                                        className="backdrop-blur-md bg-white/20 hover:bg-white/30 p-2 rounded-xl transition-all"
-                                    >
-                                        <XIcon />
-                                    </button>
-                                </div>
-
-                                <div className="backdrop-blur-md bg-white/20 rounded-2xl p-4 mb-6 border border-white/20">
-                                    <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
-                                        <PlusIcon />
-                                        Добавить слово
-                                    </h3>
-                                    <div className="flex gap-2 mb-2">
-                                        <input
-                                            type="text"
-                                            placeholder="Русское слово"
-                                            value={newWord.ru}
-                                            onChange={(e) => setNewWord({ ...newWord, ru: e.target.value })}
-                                            className="flex-1 backdrop-blur-md bg-white/20 text-white placeholder-white/60 rounded-xl px-4 py-2 border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
-                                        />
-                                        <input
-                                            type="text"
-                                            placeholder="Сингонское слово"
-                                            value={newWord.sl}
-                                            onChange={(e) => setNewWord({ ...newWord, sl: e.target.value })}
-                                            className="flex-1 backdrop-blur-md bg-white/20 text-white placeholder-white/60 rounded-xl px-4 py-2 border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
-                                        />
-                                    </div>
-                                    <button
-                                        onClick={handleAddWord}
-                                        className="w-full backdrop-blur-md bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold py-2 rounded-xl transition-all"
-                                    >
-                                        Добавить
-                                    </button>
-                                </div>
-
-                                <div className="space-y-2">
-                                    {Object.entries(dictionary).map(([ru, sl]) => (
-                                        <div
-                                            key={ru}
-                                            className="backdrop-blur-md bg-white/20 rounded-xl p-3 border border-white/20 flex justify-between items-center"
-                                        >
-                                            <span className="text-white font-medium">{ru}</span>
-                                            <span className="text-white/80">→</span>
-                                            <span className="text-white font-medium">{sl}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    )}
                 </div>
             );
         };
@@ -452,4 +274,3 @@
     </script>
 </body>
 </html>
-
