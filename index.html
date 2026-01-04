@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Русско-сингонский переводчик</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -10,106 +10,79 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Сброс стилей и адаптация для мобильных */
-        body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            overflow-x: hidden;
-            -webkit-tap-highlight-color: transparent;
-        }
-        #root {
-            height: 100%;
-            min-height: -webkit-fill-available;
+        body { 
+            margin: 0; 
+            padding: 0; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         
-        /* Убираем стандартные стили для мобильных браузеров */
-        input, textarea, button {
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-            border-radius: 0;
+        /* Улучшаем читаемость текста */
+        .text-shadow {
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
         }
         
-        /* Для iOS Safari */
-        @supports (-webkit-touch-callout: none) {
-            body, html {
-                height: -webkit-fill-available;
-            }
+        /* Плавные переходы */
+        * {
+            transition: background-color 0.2s ease, border-color 0.2s ease;
         }
         
-        /* Улучшаем отображение на маленьких экранах */
-        @media (max-width: 640px) {
-            .mobile-padding {
-                padding: 12px !important;
-            }
-            .mobile-text-sm {
-                font-size: 14px !important;
-            }
-            .mobile-h-32 {
-                height: 120px !important;
-            }
+        /* Стили для полосы прокрутки */
+        ::-webkit-scrollbar {
+            width: 6px;
         }
-        
-        /* Убираем белые границы в Telegram WebView */
-        .telegram-webview {
-            background-color: transparent !important;
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
         }
     </style>
 </head>
-<body class="telegram-webview">
+<body>
     <div id="root"></div>
     
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect } = React;
 
         const tg = window.Telegram?.WebApp;
+        let themeBgColor = '#0f172a'; // темно-синий по умолчанию
         
-        // Инициализация Telegram WebApp
-        useEffect(() => {
-            if (tg) {
-                tg.expand();
-                tg.ready();
-                // Используем тему Telegram для фона
-                document.body.style.backgroundColor = 'var(--tg-theme-bg-color, #1a1a2e)';
-                
-                // Безопасная зона для iPhone X и новее
-                const safeAreaInsetBottom = tg.viewportStableHeight || 0;
-                if (safeAreaInsetBottom > 0) {
-                    document.documentElement.style.setProperty('--safe-area-bottom', `${safeAreaInsetBottom}px`);
-                }
+        if (tg) {
+            tg.expand();
+            tg.ready();
+            
+            // Определяем тему и устанавливаем соответствующий фон
+            if (tg.colorScheme === 'dark') {
+                themeBgColor = tg.themeParams.bg_color || '#0f172a';
+                document.body.style.backgroundColor = themeBgColor;
+            } else {
+                // Для светлой темы
+                themeBgColor = '#f8fafc';
+                document.body.style.backgroundColor = themeBgColor;
             }
-        }, []);
+        } else {
+            document.body.style.backgroundColor = themeBgColor;
+        }
 
         // Компонент звезды
-        const StarIcon = ({ className, size = 24 }) => {
-            const [imgError, setImgError] = useState(false);
-            
-            return imgError ? (
-                <div className={`${className} flex items-center justify-center bg-purple-500/20 rounded-full`}>
-                    <span className="text-white font-bold text-xs">★</span>
-                </div>
-            ) : (
-                <img 
-                    src="syngonian_star.png"
-                    alt="★"
-                    className={className}
-                    style={{ 
-                        objectFit: 'contain',
-                        width: `${size}px`,
-                        height: `${size}px`
-                    }}
-                    onError={() => setImgError(true)}
-                />
-            );
-        };
+        const StarIcon = ({ className }) => (
+            <img 
+                src="syngonian_star.png" 
+                alt="Звезда Сингонии"
+                className={className}
+                style={{ 
+                    objectFit: 'contain',
+                    filter: 'brightness(0) invert(1) drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
+                }}
+            />
+        );
 
         const SlingonTranslator = () => {
             const [inputText, setInputText] = useState('');
             const [outputText, setOutputText] = useState('');
             const [mode, setMode] = useState('ru-sl');
-            const [isTranslating, setIsTranslating] = useState(false);
-            const textareaRef = useRef(null);
 
             // Таблица замены букв
             const letterMap = {
@@ -128,41 +101,28 @@
             const reverseLetterMap = {};
 
             useEffect(() => {
-                // Инициализация обратной карты
                 Object.keys(letterMap).forEach(key => {
                     const value = letterMap[key];
                     if (value && value !== '') {
                         reverseLetterMap[value] = key;
                     }
                 });
-                
-                // Фокус на текстовое поле при загрузке
-                if (textareaRef.current && window.innerWidth < 768) {
-                    setTimeout(() => {
-                        textareaRef.current?.focus();
-                    }, 300);
-                }
             }, []);
 
-            // Функция сохранения регистра
             const preserveCase = (originalWord, translatedWord) => {
                 if (!originalWord || !translatedWord) return translatedWord;
                 
-                // Если все буквы заглавные
                 if (originalWord === originalWord.toUpperCase()) {
                     return translatedWord.toUpperCase();
                 }
                 
-                // Если первая буква заглавная
                 if (originalWord[0] === originalWord[0].toUpperCase()) {
                     return translatedWord.charAt(0).toUpperCase() + translatedWord.slice(1);
                 }
                 
-                // Все строчные
-                return translatedWord.toLowerCase();
+                return translatedWord;
             };
 
-            // Функции конвертации
             const convertWord = (word) => {
                 let result = '';
                 for (let char of word) {
@@ -189,7 +149,6 @@
                 return result;
             };
 
-            // Функции перевода
             const translateToSlingon = (text) => {
                 const sentences = text.split(/([.!?]\s*)/);
                 let result = '';
@@ -211,13 +170,11 @@
                         
                         if (!token) continue;
                         
-                        // Цифры без изменений
                         if (/^\d+$/.test(token)) {
                             translatedSentence += token;
                             continue;
                         }
                         
-                        // Текст в *звездочках* не переводится
                         if (token.startsWith('*') && token.endsWith('*') && token.length > 2) {
                             translatedSentence += token.slice(1, -1);
                             continue;
@@ -269,154 +226,100 @@
                 return result;
             };
 
-            // Обработчик перевода
-            const handleTranslate = async () => {
+            const handleTranslate = () => {
                 if (!inputText.trim()) {
                     setOutputText('');
                     return;
                 }
                 
-                setIsTranslating(true);
-                
-                // Имитация задержки для лучшего UX
-                await new Promise(resolve => setTimeout(resolve, 100));
-                
-                try {
-                    if (mode === 'ru-sl') {
-                        setOutputText(translateToSlingon(inputText));
-                    } else {
-                        setOutputText(translateFromSlingon(inputText));
-                    }
-                } catch (error) {
-                    console.error('Ошибка перевода:', error);
-                    setOutputText('Ошибка перевода. Попробуйте снова.');
-                } finally {
-                    setIsTranslating(false);
+                if (mode === 'ru-sl') {
+                    setOutputText(translateToSlingon(inputText));
+                } else {
+                    setOutputText(translateFromSlingon(inputText));
                 }
             };
 
-            // Обработчик смены языка
             const swapLanguages = () => {
                 setMode(mode === 'ru-sl' ? 'sl-ru' : 'ru-sl');
                 setInputText(outputText);
                 setOutputText(inputText);
             };
 
-            // Обработчик клавиши Enter для перевода
-            const handleKeyPress = (e) => {
-                if (e.key === 'Enter' && e.ctrlKey) {
-                    e.preventDefault();
-                    handleTranslate();
-                }
-            };
+            // Проверяем тему для стилизации
+            const isDarkTheme = !tg || tg.colorScheme === 'dark';
 
             return (
-                <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-3 md:p-4">
-                    {/* Шапка */}
-                    <div className="max-w-4xl mx-auto mb-4 md:mb-6">
-                        <div className="backdrop-blur-lg bg-black/20 rounded-2xl md:rounded-3xl p-3 md:p-4 shadow-lg border border-white/10">
-                            <div className="flex items-center justify-center gap-2 md:gap-3">
-                                <StarIcon className="w-5 h-5 md:w-7 md:h-7 flex-shrink-0" />
-                                <h1 className="text-base md:text-xl lg:text-2xl font-bold text-white truncate">
-                                    Русско-сингонский переводчик
-                                </h1>
+                <div className={`min-h-screen p-4 ${isDarkTheme ? 'bg-gradient-to-br from-gray-900 via-blue-900 to-indigo-900' : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50'}`}>
+                    <div className="max-w-4xl mx-auto mb-6">
+                        <div className={`rounded-3xl p-4 md:p-6 shadow-2xl ${isDarkTheme ? 'bg-gray-800/70 border border-gray-700/50' : 'bg-white/80 border border-gray-200/50'}`}>
+                            <div className="flex items-center justify-center gap-3">
+                                <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+                                    <StarIcon className="w-6 h-6 md:w-8 md:h-8 flex-shrink-0" />
+                                    <h1 className={`text-lg md:text-2xl font-bold truncate ${isDarkTheme ? 'text-white text-shadow' : 'text-gray-800'}`}>
+                                        Сингонский переводчик
+                                    </h1>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Основной блок */}
                     <div className="max-w-4xl mx-auto">
-                        <div className="backdrop-blur-lg bg-black/20 rounded-2xl md:rounded-3xl p-4 md:p-6 shadow-lg border border-white/10">
-                            {/* Переключатель языков */}
-                            <div className="flex items-center justify-center gap-3 md:gap-4 mb-4 md:mb-6">
-                                <div className="backdrop-blur-md bg-black/30 px-4 py-1.5 md:px-6 md:py-2 rounded-xl border border-white/10">
-                                    <span className="text-white font-medium text-sm md:text-base">
+                        <div className={`rounded-3xl p-6 shadow-2xl ${isDarkTheme ? 'bg-gray-800/70 border border-gray-700/50' : 'bg-white/80 border border-gray-200/50'}`}>
+                            <div className="flex items-center justify-center gap-4 mb-6">
+                                <div className={`px-6 py-2 rounded-xl ${isDarkTheme ? 'bg-gray-700/60 border border-gray-600/50' : 'bg-gray-100 border border-gray-300/50'}`}>
+                                    <span className={`font-medium ${isDarkTheme ? 'text-white' : 'text-gray-800'}`}>
                                         {mode === 'ru-sl' ? 'Русский' : 'Сингонский'}
                                     </span>
                                 </div>
                                 <button
                                     onClick={swapLanguages}
-                                    className="backdrop-blur-md bg-black/30 hover:bg-black/40 active:scale-95 p-2 md:p-3 rounded-xl transition-all border border-white/10 active:border-white/20"
-                                    aria-label="Поменять языки местами"
+                                    className={`p-3 rounded-xl transition-all ${isDarkTheme ? 'bg-gray-700/60 hover:bg-gray-600/60 border border-gray-600/50' : 'bg-gray-100 hover:bg-gray-200 border border-gray-300/50'}`}
                                 >
-                                    <StarIcon className="w-4 h-4 md:w-5 md:h-5" />
+                                    <StarIcon className="w-5 h-5" />
                                 </button>
-                                <div className="backdrop-blur-md bg-black/30 px-4 py-1.5 md:px-6 md:py-2 rounded-xl border border-white/10">
-                                    <span className="text-white font-medium text-sm md:text-base">
+                                <div className={`px-6 py-2 rounded-xl ${isDarkTheme ? 'bg-gray-700/60 border border-gray-600/50' : 'bg-gray-100 border border-gray-300/50'}`}>
+                                    <span className={`font-medium ${isDarkTheme ? 'text-white' : 'text-gray-800'}`}>
                                         {mode === 'ru-sl' ? 'Сингонский' : 'Русский'}
                                     </span>
                                 </div>
                             </div>
 
-                            {/* Поле ввода */}
                             <div className="mb-4">
                                 <textarea
-                                    ref={textareaRef}
                                     value={inputText}
                                     onChange={(e) => setInputText(e.target.value)}
-                                    onKeyDown={handleKeyPress}
-                                    placeholder={mode === 'ru-sl' 
-                                        ? "Введите русский текст..." 
-                                        : "Введите сингонский текст..."}
-                                    className="w-full h-32 md:h-40 backdrop-blur-md bg-black/30 text-white placeholder-white/50 rounded-xl md:rounded-2xl p-3 md:p-4 border border-white/10 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 resize-none text-sm md:text-base"
-                                    rows="4"
+                                    placeholder="Введите текст для перевода..."
+                                    className={`w-full h-40 rounded-2xl p-4 focus:outline-none focus:ring-2 resize-none text-lg ${isDarkTheme ? 
+                                        'bg-gray-700/60 text-white placeholder-gray-400 border border-gray-600/50 focus:ring-blue-500/50' : 
+                                        'bg-white/90 text-gray-800 placeholder-gray-500 border border-gray-300/70 focus:ring-blue-400'
+                                    }`}
                                 />
                             </div>
 
-                            {/* Кнопка перевода */}
                             <button
                                 onClick={handleTranslate}
-                                disabled={isTranslating || !inputText.trim()}
-                                className="w-full backdrop-blur-md bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 active:from-purple-800 active:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 md:py-4 rounded-xl md:rounded-2xl transition-all shadow-lg mb-4 active:scale-[0.98]"
+                                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-4 rounded-2xl transition-all shadow-lg mb-4 text-lg active:scale-[0.98]"
                             >
-                                {isTranslating ? (
-                                    <span className="flex items-center justify-center gap-2">
-                                        <svg className="animate-spin h-4 w-4 md:h-5 md:w-5 text-white" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                        </svg>
-                                        Перевод...
-                                    </span>
-                                ) : (
-                                    'Перевести'
-                                )}
+                                Перевести
                             </button>
 
-                            {/* Поле вывода */}
-                            <div className="backdrop-blur-md bg-black/30 rounded-xl md:rounded-2xl p-3 md:p-4 border border-white/10 min-h-[120px] md:min-h-[160px]">
-                                <p className="text-white whitespace-pre-wrap break-words text-sm md:text-base">
-                                    {outputText || (mode === 'ru-sl' 
-                                        ? 'Здесь появится перевод на сингонский...' 
-                                        : 'Здесь появится перевод на русский...')}
+                            <div className={`rounded-2xl p-4 min-h-[160px] ${isDarkTheme ? 
+                                'bg-gray-700/60 border border-gray-600/50' : 
+                                'bg-white/90 border border-gray-300/70'
+                            }`}>
+                                <p className={`whitespace-pre-wrap ${isDarkTheme ? 'text-white' : 'text-gray-800'}`}>
+                                    {outputText || 'Перевод появится здесь...'}
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    {/* Подвал */}
-                    <div className="max-w-4xl mx-auto mt-4 md:mt-6 text-center">
-                        <p className="text-white/60 text-xs md:text-sm mb-2">
+                    <div className="max-w-4xl mx-auto mt-6 text-center">
+                        <p className={`text-sm mb-2 ${isDarkTheme ? 'text-gray-400' : 'text-gray-600'}`}>
                             При поддержке Национального института сингонского языка
                         </p>
-                        <div className="flex items-center justify-center gap-1">
-                            <StarIcon className="w-3 h-3 opacity-40" />
-                            <StarIcon className="w-4 h-4 opacity-60" />
-                            <StarIcon className="w-3 h-3 opacity-40" />
-                        </div>
+                        <StarIcon className="w-5 h-5 mx-auto opacity-70" />
                     </div>
-
-                    {/* Кнопка "Наверх" для мобильных */}
-                    {window.innerWidth < 768 && inputText.length > 100 && (
-                        <button
-                            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                            className="fixed bottom-4 right-4 backdrop-blur-md bg-black/50 hover:bg-black/70 p-2 rounded-full border border-white/10 shadow-lg"
-                            aria-label="Наверх"
-                        >
-                            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                            </svg>
-                        </button>
-                    )}
                 </div>
             );
         };
