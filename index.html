@@ -69,6 +69,10 @@
                 'Ы': 'И', 'Ь': '', 'Э': 'Є', 'Ю': 'Ө', 'Я': 'Ү'
             };
 
+            // Гласные буквы (для определения где ставить апостроф)
+            const vowelsRu = 'аеёиоуыэюяАЕЁИОУЫЭЮЯ';
+            const vowelsSl = 'әэёыаөєүјЭЁЫАӨЄҮЈ';
+
             useEffect(() => {
                 const reverse = {};
                 Object.keys(letterMap).forEach(key => {
@@ -82,16 +86,30 @@
 
             const convertWord = (word) => {
                 let result = '';
-                for (let char of word) {
-                    result += letterMap[char] || char;
+                for (let i = 0; i < word.length; i++) {
+                    const char = word[i];
+                    const translatedChar = letterMap[char] || char;
+                    result += translatedChar;
+                    
+                    // Проверяем, нужно ли ставить апостроф
+                    if (i < word.length - 1) {
+                        const currentIsVowel = vowelsRu.includes(char);
+                        const nextIsVowel = vowelsRu.includes(word[i + 1]);
+                        
+                        if (currentIsVowel && nextIsVowel) {
+                            result += "'";
+                        }
+                    }
                 }
                 return result;
             };
 
             const convertWordReverse = (word) => {
+                // Убираем апострофы перед обратным переводом
+                const cleanWord = word.replace(/'/g, '');
                 let result = '';
-                for (let i = 0; i < word.length; i++) {
-                    const char = word[i];
+                for (let i = 0; i < cleanWord.length; i++) {
+                    const char = cleanWord[i];
                     result += reverseLetterMap[char] || char;
                 }
                 return result;
@@ -323,5 +341,3 @@
     </script>
 </body>
 </html>
-
-
